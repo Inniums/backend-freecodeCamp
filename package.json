@@ -1,0 +1,31 @@
+{
+  "name": "backend-freecodecamp",
+  "version": "1.0.0",
+  "description": "Backend Tutorial for all freecodeCamp exercises",
+  "main": "index.js",
+  "scripts": {
+    "test": "debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Inniums/backend-freecodeCamp.git"
+  },
+  "keywords": [
+    "node",
+    "express"
+  ],
+  "author": "Inniums",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Inniums/backend-freecodeCamp/issues"
+  },
+  "homepage": "https://github.com/Inniums/backend-freecodeCamp#readme",
+	"dependencies": {
+		"body-parser": "^2.0.1",
+		"cors": "^2.8.5",
+		"dotenv": "^8.2.0",
+		"express": "^5.0.0",
+		"mongodb": "^6.8.1",
+		"mongoose": "^8.6.0"
+	}
+}
