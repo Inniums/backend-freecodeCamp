@@ -4,7 +4,7 @@
   "description": "Backend Tutorial for all freecodeCamp exercises",
   "main": "index.js",
   "scripts": {
-    "test": "debug"
+    "test": "node index.js"
   },
   "repository": {
     "type": "git",

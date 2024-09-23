@@ -13,9 +13,25 @@ app.get("/", (request, response) => {
   response.sendFile(process.cwd() + "/views/index.html");
 });
 app.use(express.static("public"));
+// ends here
 
-// set mongo-db
-// mongoose.connect(process.env.M)
+// Set mongo-db
+mongoose.connect(process.env.MONGO_URI);
+const { Schema, model } = mongoose;
+
+// ends here
+
+// Exercises
+
+// 1) Using Exress Node Js
+app.post("/name", (request, response) => {
+  // Get inputs
+  let data = request.body;
+  response.json({
+    name: `${data.first} ${data.last}`,
+  });
+});
+
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("App is listening on port", listener.address);
 });
