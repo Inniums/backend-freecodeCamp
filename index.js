@@ -6,6 +6,8 @@ require("dotenv").config();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const dns = require("dns");
+const { type } = require("os");
+const multer = require("multer");
 
 // Configure set up
 app.use(cors());
@@ -33,6 +35,9 @@ app.get("/views/exercises/urlshortner.html", (request, response) => {
 app.get("/views/exercises/exercise_tracker.html", (request, response) => {
   response.sendFile(process.cwd() + "/views/exercises/exercise_tracker.html");
 });
+app.get("/views/exercises/file_meta_data.html", (request, response) => {
+  response.sendFile(process.cwd() + "/views/exercises/file_meta_data.html");
+});
 // ends here
 
 app.use(express.static("public"));
@@ -52,10 +57,21 @@ const UrlSchema = new Schema({
   shorturl: { type: Number },
 });
 
+const userSchema = new Schema({ username: { required: true, type: String } });
+
+const exercise_schema = new Schema({
+  username: { type: String, required: true },
+  description: { type: String },
+  duration: { type: Number },
+  date: { type: Date },
+});
+
 // ends here
 
 // Set Up models
 const url = model("Url", UrlSchema);
+const user = model("user", userSchema);
+const exercise = model("exercise", exercise_schema);
 // Ends here
 
 // 1) Using Exress Node Js
@@ -148,6 +164,118 @@ app.get("/views/exercises/api/shorturl/:short", async (request, response) => {
   }
 });
 
+// User Tracker
+app.post("/api/users", async (request, response) => {
+  let username = request.body.username;
+  let result = await user.findOneAndUpdate(
+    { username: username },
+    { $set: { username: username } },
+    { new: true, upsert: true }
+  );
+  if (result) {
+    response.json(result);
+  } else {
+    response.status(500).send("User create failed");
+  }
+});
+
+// get all users
+app.get("/api/users", async (request, response) => {
+  let result = await user.find();
+  if (result) {
+    response.json(result);
+  } else {
+    response.status(500).send("Failed to query users");
+  }
+});
+
+// record exercises
+app.post("/api/users/:_id/exercises", async (request, response) => {
+  const _id = request.params._id;
+  let query = request.body;
+  // If date is not supplied or invalid use current date
+  query.date = isInvalidDate(new Date(query.date))
+    ? new Date().toDateString()
+    : new Date(query.date).toDateString();
+  let user_result = await user.findById(_id);
+  if (!user_result) {
+    response.status(500).send(`User _id ${_id}, does not exist`);
+  } else {
+    query.username = user_result.username; // add username to create body
+    if (query._id) delete query[":_id"];
+    let create_log = await exercise.create(query);
+    if (create_log) {
+      query._id = _id;
+      response.json(query);
+    } else {
+      response.status(500).send("user exercise create failed");
+    }
+  }
+});
+
+// set filter condition
+const condition = (from, to) => {
+  let query = {};
+  if (!isInvalidDate(new Date(from)) && isInvalidDate(new Date(to))) {
+    query.date = { $gte: new Date(from) };
+  } else if (isInvalidDate(new Date(from)) && !isInvalidDate(new Date(to))) {
+    query.date = { $lte: new Date(to) };
+  } else if (!isInvalidDate(new Date(from)) && !isInvalidDate(new Date(to))) {
+    query.date = { $gte: new Date(from), $lte: new Date(to) };
+  }
+  return query;
+};
+
+// set limit
+const getLimt = (limt) => (isNaN(limt) ? 100 : Number(limt));
+
+app.get("/api/users/:_id/logs", async (request, response) => {
+  const _id = request.params._id;
+  const { from, to, limit } = request.query;
+
+  // set up query condition
+  let query = condition(from, to);
+
+  // get user data
+  let user_result = await user.findById(_id);
+  if (!user_result) {
+    response.status(500).send(`User Id ${_id} not found`);
+  } else {
+    // set up query condition 2
+    query.username = user_result.username;
+    let records = await exercise.find(query, null, { limit: getLimt(limit) });
+    let logs = {};
+    logs.username = user_result.username;
+    logs.count = records.length;
+    logs._id = _id;
+    logs.log = new Array();
+    records.map((item) => {
+      logs.log.push({
+        description: item.description,
+        duration: Number(item.duration),
+        date: new Date(item.date).toDateString(),
+      });
+    });
+    response.json(logs);
+  }
+});
+
+// set upload database
+const upload = multer({
+  dest: "./uploads",
+});
+
+app.post("/api/fileanalyse", upload.single("upfile"), (request, response) => {
+  let file = request.file;
+  response.json({
+    name: file.originalname,
+    type: file.mimetype,
+    size: file.size,
+  });
+});
+
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log("App is listening on port", listener.address().port);
 });
+
+// /api/users/:_id/logs?from=2023-04-15&to=2023-12-12&limit=10
