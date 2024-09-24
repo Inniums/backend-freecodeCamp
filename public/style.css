@@ -1,0 +1,18 @@
+div {
+  font-weight: 900;
+}
+a {
+  color: blue;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+a:hover {
+  color: red;
+}
+a:visited {
+  color: blue;
+}
+
+/* body {
+   text-align: center;
+} */
